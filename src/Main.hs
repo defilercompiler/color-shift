@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns     #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE RecordWildCards  #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 
 module Main where
@@ -24,11 +25,9 @@ import           System.FilePath.Lens
 
 main :: IO ()
 main = do
-  cli@CLI {..} <- either (error . show) id . validateCLI <$> execParser cliParser
+  cli@CLI {..} <- execParser cliParser
   src <- either (error "Couldn't read image") convertRGBA8 <$> readImage cImgPath
-  let new = makeImage cShift ch1 ch2 src
-      ch1 = txtToChannel cChannelSrc
-      ch2 = txtToChannel cChannelTgt
+  let new = makeImage cShift cChannelSrc cChannelTgt src
   writePng (makeFileName cli cImgPath) new
   where
     makeFileName CLI {..} imgPath =
@@ -36,35 +35,31 @@ main = do
           [name, ext] = case splitOn "." $ imgPath ^. filename of
             (n:x:_) -> [n, x]
             _       -> error "Invalid filename/extension."
-      in baseDir <> "/" <> name <> "-shifted-" <> cChannelSrc
-          <> "-" <> cChannelTgt <> "-"
+      in baseDir <> "/" <> name <> "-shifted-" <> show cChannelSrc
+          <> "-" <> show cChannelTgt <> "-"
           <> show cShift <> "." <> ext
 
-    validateCLI cli@(CLI _ cSh cSrc cTgt)
-      | not $ elem cSrc ["red", "green", "blue"] = Left "Source channel not in red | green | blue"
-      | not $ elem cTgt ["red", "green", "blue"] = Left "Target channel not in red | green | blue"
-      | otherwise = Right cli
-
     cliParser = info (helper <*> parseCLI) (header "color-shift")
-
-    txtToChannel ch = case ch of
-                  "red"   -> Red
-                  "blue"  -> Blue
-                  "green" -> Green
 
     parseCLI = CLI
       <$> strOption (long "file" <> help "Image path")
       <*> option auto (long "shift" <> help "By how many pixels to shift the source channel")
-      <*> strOption (long "src-channel" <> help "Source Channel - red | green | blue")
-      <*> strOption (long "tgt-channel" <> help "Target Channel - red | green | blue")
+      <*> option channelParser (long "src-channel")
+      <*> option channelParser (long "tgt-channel")
 
+channelParser :: ReadM Channel
+channelParser = str >>= \s -> case s of
+  "red" -> pure Red
+  "green" -> pure Green
+  "blue" -> pure Blue
+  _ -> readerError "Permitted inputs are \"red\", \"green\", and \"blue\"."
 
 -- | CLI.
 data CLI = CLI
   { cImgPath    :: FilePath -- ^ Path to the file to process.
   , cShift      :: Int -- ^ By which amount to shift
-  , cChannelSrc :: String -- ^ Source channel
-  , cChannelTgt :: String -- ^ Target channel
+  , cChannelSrc :: Channel -- ^ Source channel
+  , cChannelTgt :: Channel -- ^ Target channel
   } deriving (Eq, Show)
 
 makeImage
@@ -112,7 +107,7 @@ zipChannels a ch1 ch2 id =
         sh sq = (Seq.drop a sq) Seq.>< (Seq.take a sq)
 
 -- | Which channel are we shifting
-data Channel = Red | Green | Blue
+data Channel = Red | Green | Blue deriving (Show, Eq)
 
 extractRed :: VS.Vector Word8 -> Seq.Seq Word8
 extractRed = extractChannel 0
