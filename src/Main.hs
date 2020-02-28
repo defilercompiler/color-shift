@@ -90,21 +90,25 @@ shiftChannel a ch1 ch2 src@Image {..} = runST $ do
 zipChannels :: Int -> Channel -> Channel -> VS.Vector Word8 -> Seq.Seq PixelRGBA8
 zipChannels a ch1 ch2 id =
   case (ch1, ch2) of
-    (Red, Red)     -> fmap makePixel (Seq.zip4 (sh r) g b al)
-    (Red, Green)   -> fmap makePixel (Seq.zip4 r (sh r) b al)
-    (Red, Blue)    -> fmap makePixel (Seq.zip4 r g (sh r) al)
-    (Green, Green) -> fmap makePixel (Seq.zip4 r (sh g) b al)
-    (Green, Red)   -> fmap makePixel (Seq.zip4 (sh g) g b al)
-    (Green, Blue)  -> fmap makePixel (Seq.zip4 r g (sh g) al)
-    (Blue, Blue)   -> fmap makePixel (Seq.zip4 r g (sh b) al)
-    (Blue, Red)    -> fmap makePixel (Seq.zip4 (sh b) g b al)
-    (Blue, Green)  -> fmap makePixel (Seq.zip4 r (sh b) b al)
+    (Red, Red)     -> fmap makePixel (Seq.zip4 (merge(sh r) r) g b al)
+    (Red, Green)   -> fmap makePixel (Seq.zip4 r (merge (sh r) g) b al)
+    (Red, Blue)    -> fmap makePixel (Seq.zip4 r g (merge (sh r) b) al)
+    (Green, Green) -> fmap makePixel (Seq.zip4 r (merge (sh g) g) b al)
+    (Green, Red)   -> fmap makePixel (Seq.zip4 (merge (sh g) r) g b al)
+    (Green, Blue)  -> fmap makePixel (Seq.zip4 r g (merge (sh g) b) al)
+    (Blue, Blue)   -> fmap makePixel (Seq.zip4 r g (merge (sh b) b) al)
+    (Blue, Red)    -> fmap makePixel (Seq.zip4 (merge (sh b) r) g b al)
+    (Blue, Green)  -> fmap makePixel (Seq.zip4 r (merge (sh b) g) b al)
   where makePixel d = PixelRGBA8 (sel1 d) (sel2 d) (sel3 d) (sel4 d)
         r = extractRed id
         g = extractGreen id
         b = extractBlue id
         al = extractAlpha id
         sh sq = (Seq.drop a sq) Seq.>< (Seq.take a sq)
+        merge chNew chOld = fmap addUp (Seq.zip chNew chOld)
+        --addUp (c1, c2) = (c1 + c2) `mod` 255
+        --addUp (c1, c2) = (c1 + c2) `div` 2
+        addUp (c1, c2) = c1
 
 -- | Which channel are we shifting
 data Channel = Red | Green | Blue deriving (Show, Eq)
