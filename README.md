@@ -1,15 +1,3 @@
-## The rest of the suite that I use:
-
-
-https://github.com/defilercompiler/pixelsort
-
-https://github.com/defilercompiler/img-swap
-
-https://github.com/defilercompiler/dim-swap
-
-Many forked and inspired by https://github.com/quasi-coherent 's work
-
-
 # color-shift
 ```
 color-shift
@@ -27,3 +15,13 @@ Available options:
 ## Examples
 ![Sample](resources/1.jpg)
 
+## The rest of the suite that I use:
+
+
+https://github.com/defilercompiler/pixelsort
+
+https://github.com/defilercompiler/img-swap
+
+https://github.com/defilercompiler/dim-swap
+
+Many forked and inspired by https://github.com/quasi-coherent 's work
